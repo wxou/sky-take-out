@@ -12,7 +12,7 @@
         order by create_time desc
     </select>
 
-    <update id="updata" parameterType="Employee">
+    <update id="update" parameterType="Employee">
         update sky_take_out.employee
         <set>
             <if test="name != null">name = #{name},</if>
