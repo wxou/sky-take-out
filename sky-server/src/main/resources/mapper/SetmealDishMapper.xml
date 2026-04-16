@@ -8,4 +8,11 @@
             #{dishId}
         </foreach>
     </select>
+
+    <select id="getDishIdsBySetmealIds" resultType="java.lang.Long">
+        select distinct dish_id from sky_take_out.setmeal_dish where setmeal_id in
+        <foreach collection="setmealIds" item="setmealId" separator="," open="(" close=")">
+            #{setmealId}
+        </foreach>
+    </select>
 </mapper>

@@ -13,4 +13,11 @@ public interface SetmealDishMapper {
      * @return
      */
     List<Long> getSetmealIdsByDishIds(List<Long> dishIds);
+
+    /**
+     * 根据套餐id查询菜品id
+     * @param setmealIds
+     * @return
+     */
+    List<Long> getDishIdsBySetmealIds(List<Long> setmealIds);
 }
