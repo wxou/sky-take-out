@@ -202,4 +202,29 @@ public class DishServiceImpl implements DishService {
 
 
     }
+
+    /**
+     * 根据分类id查询菜品
+     * @param categoryId
+     * @return
+     */
+    @Override
+    public List<DishVO> listByCategoryId(Long categoryId) {
+        List<DishVO> list = dishMapper.listByCategoryId(categoryId);
+        return list;
+    }
+
+    /**
+     * 启用、禁用分类
+     * @param status
+     * @param id
+     */
+    @Override
+    public void startOrStop(Integer status, Long id) {
+        Dish dish = Dish.builder()
+                .status(status)
+                .id(id)
+                .build();
+        dishMapper.update(dish);
+    }
 }
