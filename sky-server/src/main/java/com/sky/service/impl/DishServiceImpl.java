@@ -183,6 +183,7 @@ public class DishServiceImpl implements DishService {
      * @param dishDTO
      */
     @Override
+    @Transactional
     public void updateWithFlavor(DishDTO dishDTO) {
         //修改菜品表基本信息
         Dish dish = new Dish();
@@ -209,8 +210,8 @@ public class DishServiceImpl implements DishService {
      * @return
      */
     @Override
-    public List<DishVO> listByCategoryId(Long categoryId) {
-        List<DishVO> list = dishMapper.listByCategoryId(categoryId);
+    public List<Dish> listByCategoryId(Long categoryId) {
+        List<Dish> list = dishMapper.listByCategoryId(categoryId);
         return list;
     }
 

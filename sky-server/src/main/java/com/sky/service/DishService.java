@@ -2,6 +2,7 @@ package com.sky.service;
 
 import com.sky.dto.DishDTO;
 import com.sky.dto.DishPageQueryDTO;
+import com.sky.entity.Dish;
 import com.sky.result.PageResult;
 import com.sky.vo.DishVO;
 
@@ -47,7 +48,7 @@ public interface DishService {
      * @param categoryId
      * @return
      */
-    List<DishVO> listByCategoryId(Long categoryId);
+    List<Dish> listByCategoryId(Long categoryId);
 
     /**
      * 启用、禁用菜品

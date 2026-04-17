@@ -28,4 +28,15 @@
         where id = #{id}
     </update>
 
+    <update id="updatePassword">
+        update sky_take_out.employee
+        <set>
+            <if test="newPassword != null">password = #{newPassword},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="updateUser != null">update_user = #{updateUser},</if>
+        </set>
+        where id = #{empId}
+    </update>
+
+
 </mapper>
