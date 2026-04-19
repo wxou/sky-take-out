@@ -26,8 +26,8 @@ public class ShopController {
      */
     @PutMapping("/{status}")
     @ApiOperation("设置店铺营业状态")
-    public Result setStatus(@PathVariable String status) {
-        log.info("设置店铺营业状态:{}", status.equals("1") ? "营业中":"打烊中");
+    public Result setStatus(@PathVariable Integer status) {
+        log.info("设置店铺营业状态:{}", status==1 ? "营业中":"打烊中");
         redisTemplate.opsForValue().set(KEY,status);
         return Result.success();
     }
@@ -35,10 +35,9 @@ public class ShopController {
     @GetMapping("/status")
     @ApiOperation("获取店铺营业状态")
     public Result<Integer> getStatus(){
-        String shopStatusStr = (String) redisTemplate.opsForValue().get(KEY);
-        Integer shopStatus = shopStatusStr != null ? Integer.parseInt(shopStatusStr) : null;
-        log.info("获取店铺营业状态: {}",shopStatus.equals("1")? "营业中":"打烊中");
-        return Result.success(shopStatus);
+        Integer status = (Integer) redisTemplate.opsForValue().get(KEY);
+        log.info("获取店铺营业状态: {}",status==1? "营业中":"打烊中");
+        return Result.success(status);
     }
 
 }

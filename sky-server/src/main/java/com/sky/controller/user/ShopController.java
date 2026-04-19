@@ -22,10 +22,9 @@ public class ShopController {
     @GetMapping("/status")
     @ApiOperation("获取店铺营业状态")
     public Result<Integer> getStatus(){
-        String shopStatusStr = (String) redisTemplate.opsForValue().get(KEY);
-        Integer shopStatus = shopStatusStr != null ? Integer.parseInt(shopStatusStr) : null;
-        log.info("获取店铺营业状态: {}",shopStatus==1? "营业中":"打烊中");
-        return Result.success(shopStatus);
+        Integer status = (Integer) redisTemplate.opsForValue().get(KEY);
+        log.info("获取店铺营业状态: {}",status==1? "营业中":"打烊中");
+        return Result.success(status);
     }
 
 }
