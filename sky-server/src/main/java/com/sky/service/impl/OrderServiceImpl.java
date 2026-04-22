@@ -421,6 +421,7 @@ public class OrderServiceImpl implements OrderService {
         Orders orders = Orders.builder()
                 .id(Long.valueOf(id))
                 .status(Orders.COMPLETED)
+                .deliveryTime(LocalDateTime.now())
                 .build();
         orderMapper.update(orders);
     }
