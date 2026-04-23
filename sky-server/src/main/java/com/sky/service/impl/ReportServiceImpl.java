@@ -4,6 +4,7 @@ import com.sky.entity.Orders;
 import com.sky.mapper.OrderMapper;
 import com.sky.mapper.UserMapper;
 import com.sky.service.ReportService;
+import com.sky.vo.OrderReportVO;
 import com.sky.vo.TurnoverReportVO;
 import com.sky.vo.UserReportVO;
 import lombok.extern.slf4j.Slf4j;
@@ -39,16 +40,7 @@ public class ReportServiceImpl implements ReportService {
      */
     @Override
     public TurnoverReportVO getTurnoverStatistics(LocalDate begin, LocalDate end) {
-        //当前集合用于存放从begin到end的所有日期
-        List<LocalDate> dateList = new ArrayList<>();
-
-        dateList.add(begin);
-
-        while (!begin.equals(end)) {
-            //日期计算，begin加1天，赋值给begin
-            begin = begin.plusDays(1);
-            dateList.add(begin);
-        }
+        List<LocalDate> dateList = getDateList(begin, end);
 
         //存放每天的营业额
         List<Double> turnoverList = new ArrayList<>();
@@ -82,16 +74,7 @@ public class ReportServiceImpl implements ReportService {
      */
     @Override
     public UserReportVO getUserStatistics(LocalDate begin, LocalDate end) {
-        //当前集合用于存放从begin到end的所有日期
-        List<LocalDate> dateList = new ArrayList<>();
-
-        dateList.add(begin);
-
-        while (!begin.equals(end)) {
-            //日期计算，begin加1天，赋值给begin
-            begin = begin.plusDays(1);
-            dateList.add(begin);
-        }
+        List<LocalDate> dateList = getDateList(begin, end);
 
         //存放每天的新增用户数 select count(id) from sky_take_out.user where create_time >= beginTime and create_time < endTime
         List<Integer> newUserList = new ArrayList<>();
@@ -120,5 +103,90 @@ public class ReportServiceImpl implements ReportService {
                 .totalUserList(StringUtils.join(totalUserList, ","))
                 .newUserList(StringUtils.join(newUserList, ","))
                 .build();
+    }
+
+
+    /**
+     * 统计指定时间区域内的订单数据
+     * @param begin
+     * @param end
+     * @return
+     */
+    @Override
+    public OrderReportVO getOrdersStatistics(LocalDate begin, LocalDate end) {
+        //获取时间区间内的日期
+        List<LocalDate> dateList = getDateList(begin, end);
+
+        //存放每天的有效订单数
+        List<Integer> validOrderCountList = new ArrayList<>();
+        //存放每天的订单总数
+        List<Integer> orderCountList = new ArrayList<>();
+
+        //遍历dateList集合,查询每天的有效订单数和订单总数
+        for (LocalDate date : dateList) {
+            LocalDateTime beginTime = LocalDateTime.of(date, LocalTime.MIN);
+            LocalDateTime endTime = LocalDateTime.of(date, LocalTime.MAX);
+
+            //查询每天的订单总数 select count(id) from sky_take_out.orders where order_time >= beginTime and order_time < endTime
+            Integer totalOrderCount = getOrderCount(beginTime, endTime, null);
+            orderCountList.add(totalOrderCount == null ? 0 : totalOrderCount);
+
+            //查询每天的有效订单数 select count(id) from sky_take_out.orders where order_time >= beginTime and order_time < endTime and status = 5
+            Integer validOrderCount = getOrderCount(beginTime, endTime, Orders.COMPLETED);
+            validOrderCountList.add(validOrderCount == null ? 0 : validOrderCount);
+        }
+
+        //计算时间区间内的订单总数量
+        Integer totalOrderCount = orderCountList.stream().reduce(Integer::sum).get();
+
+        //计算时间区间内的有效订单数量
+        Integer validOrderCount = validOrderCountList.stream().reduce(Integer::sum).get();
+
+        //计算订单完成率
+        Double orderCompletionRate = 0.0;
+        if (totalOrderCount != 0) {
+            orderCompletionRate = validOrderCount.doubleValue() / totalOrderCount;
+        }
+
+        return OrderReportVO.builder()
+                .dateList(StringUtils.join(dateList, ","))
+                .orderCountList(StringUtils.join(orderCountList, ","))
+                .validOrderCountList(StringUtils.join(validOrderCountList, ","))
+                .totalOrderCount(totalOrderCount)
+                .validOrderCount(validOrderCount)
+                .orderCompletionRate(orderCompletionRate)
+                .build();
+    }
+
+    /**
+     * 根据条件统计订单数量
+     * @param begin
+     * @param end
+     * @param status
+     * @return
+     */
+    private Integer getOrderCount(LocalDateTime begin, LocalDateTime end, Integer status) {
+        Map map = new HashMap();
+        map.put("begin", begin);
+        map.put("end", end);
+        map.put("status", status);
+        return orderMapper.countByMap(map);
+    }
+
+    /**
+     * 获取从begin到end的日期列表（包含begin和end）
+     * @param begin 开始日期
+     * @param end 结束日期
+     * @return 日期列表
+     */
+    private List<LocalDate> getDateList(LocalDate begin, LocalDate end) {
+        List<LocalDate> dateList = new ArrayList<>();
+        dateList.add(begin);
+
+        while (!begin.equals(end)) {
+            begin = begin.plusDays(1);
+            dateList.add(begin);
+        }
+        return dateList;
     }
 }
