@@ -52,10 +52,10 @@ public interface SetmealService {
 
     /**
      * 条件查询
-     * @param setmeal
+     * @param categoryId
      * @return
      */
-    List<Setmeal> list(Setmeal setmeal);
+    List<Setmeal> list(Long categoryId);
 
     /**
      * 根据id查询菜品选项

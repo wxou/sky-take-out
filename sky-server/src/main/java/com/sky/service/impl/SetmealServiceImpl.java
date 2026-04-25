@@ -150,10 +150,13 @@ public class SetmealServiceImpl implements SetmealService {
 
     /**
      * 条件查询
-     * @param setmeal
+     * @param categoryId
      * @return
      */
-    public List<Setmeal> list(Setmeal setmeal) {
+    public List<Setmeal> list(Long categoryId) {
+        Setmeal setmeal = new Setmeal();
+        setmeal.setCategoryId(categoryId);
+        setmeal.setStatus(StatusConstant.ENABLE);
         List<Setmeal> list = setmealMapper.list(setmeal);
         return list;
     }

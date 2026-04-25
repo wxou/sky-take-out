@@ -39,14 +39,10 @@ public class DishController {
      */
     @PostMapping
     @ApiOperation(value = "新增菜品")
-    @CacheEvict(cacheNames = "dishCache",allEntries = true)
+    @CacheEvict(cacheNames = "dishCache",key = "#dishDTO.categoryId")
     public Result save(@RequestBody DishDTO dishDTO){
         log.info("新增菜品：{}",dishDTO);
         dishService.saveWithFlavor(dishDTO);
-
-        //清理缓存数据
-//        String key = "dish_" + dishDTO.getCategoryId();
-//        cleanCache(key);
 
         return Result.success();
     }
@@ -76,8 +72,6 @@ public class DishController {
         log.info("删除菜品：{}", ids);
         dishService.deleteBatch(ids);
 
-//        //将所有菜品缓存数据清理掉, 所有以dish_开头的key
-//        cleanCache("dish_*");
 
 
         return Result.success();

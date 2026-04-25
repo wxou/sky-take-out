@@ -114,8 +114,8 @@ public class ShoppingCardServiceImpl implements ShoppingCardService {
         //属性拷贝
         BeanUtils.copyProperties(shoppingCartDTO, shoppingCart);
         //设置用户id
-        Long userId = BaseContext.getCurrentId();
-        shoppingCart.setUserId(userId);
+//        Long userId = BaseContext.getCurrentId();
+//        shoppingCart.setUserId(userId);
 
         //设置查询条件，查询当前登录用户的购物车数据
         shoppingCart.setUserId(BaseContext.getCurrentId());

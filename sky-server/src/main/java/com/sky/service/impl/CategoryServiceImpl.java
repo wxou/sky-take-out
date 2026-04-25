@@ -47,13 +47,6 @@ public class CategoryServiceImpl implements CategoryService {
         //设置分类状态，默认正常状态(1表示正常,0表示锁定)
         category.setStatus(StatusConstant.ENABLE);
 
-        //设置创建时间和修改时间
-//        category.setCreateTime(LocalDateTime.now());
-//        category.setUpdateTime(LocalDateTime.now());
-
-        //设置创建人ID，修改人ID
-//        category.setCreateUser(BaseContext.getCurrentId());
-//        category.setUpdateUser(BaseContext.getCurrentId());
 
         categoryMapper.insert(category);
 
@@ -83,7 +76,7 @@ public class CategoryServiceImpl implements CategoryService {
      */
     @Override
     public void deleteById(Integer id) {
-        ////查询当前分类是否关联了菜品，如果关联了就抛出业务异常
+        //查询当前分类是否关联了菜品，如果关联了就抛出业务异常
         Integer count = dishMapper.countByCategoryId(id);
         if(count > 0){
             //当前分类下有菜品，不能删除
@@ -109,9 +102,6 @@ public class CategoryServiceImpl implements CategoryService {
         Category category = new Category();
         BeanUtils.copyProperties(categoryDTO, category);
 
-//        category.setUpdateTime(LocalDateTime.now());
-//        category.setUpdateUser(BaseContext.getCurrentId());
-
         categoryMapper.update(category);
 
     }
@@ -126,8 +116,6 @@ public class CategoryServiceImpl implements CategoryService {
         Category category = Category.builder()
                 .status(status)
                 .id(id)
-//                .updateTime(LocalDateTime.now())
-//                .updateUser(BaseContext.getCurrentId())
                 .build();
 
         categoryMapper.update(category);

@@ -38,18 +38,14 @@ public class UserController {
         log.info("微信登录：{}", userLoginDTO);
 
         //微信登录
-        User user = userService.wxlogin(userLoginDTO);
+        UserLoginVO userLoginVO = userService.wxlogin(userLoginDTO);
 
-        //为微信用户生成jwt令牌
-        Map<String, Object> claims = new HashMap<>();
-        claims.put(JwtClaimsConstant.USER_ID, user.getId());
-        String token = JwtUtil.createJWT(jwtProperties.getUserSecretKey(), jwtProperties.getUserTtl(), claims);
-
-        UserLoginVO userLoginVO = UserLoginVO.builder()
-                .id(user.getId())
-                .openid(user.getOpenid())
-                .token(token)
-                .build();
         return Result.success(userLoginVO);
+    }
+
+    @PostMapping("/logout")
+    @ApiOperation("微信登出")
+    public Result logout(){
+        return Result.success();
     }
 }

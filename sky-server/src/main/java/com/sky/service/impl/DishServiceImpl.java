@@ -231,10 +231,14 @@ public class DishServiceImpl implements DishService {
 
     /**
      * 条件查询菜品和口味
-     * @param dish
+     * @param categoryId
      * @return
      */
-    public List<DishVO> listWithFlavor(Dish dish) {
+    public List<DishVO> listWithFlavor(Long categoryId) {
+
+        Dish dish = new Dish();
+        dish.setCategoryId(categoryId);
+        dish.setStatus(StatusConstant.ENABLE);//查询起售中的菜品
         // 查询菜品数据
         List<Dish> dishList = dishMapper.list(dish);
 

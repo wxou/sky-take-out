@@ -2,6 +2,7 @@ package com.sky.service.impl;
 
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
+import com.sky.constant.JwtClaimsConstant;
 import com.sky.constant.MessageConstant;
 import com.sky.constant.PasswordConstant;
 import com.sky.constant.StatusConstant;
@@ -15,16 +16,22 @@ import com.sky.exception.AccountLockedException;
 import com.sky.exception.AccountNotFoundException;
 import com.sky.exception.PasswordErrorException;
 import com.sky.mapper.EmployeeMapper;
+import com.sky.properties.JwtProperties;
 import com.sky.result.PageResult;
 import com.sky.service.EmployeeService;
+import com.sky.utils.JwtUtil;
+import com.sky.vo.EmployeeLoginVO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class EmployeeServiceImpl implements EmployeeService {
@@ -32,13 +39,16 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Autowired
     private EmployeeMapper employeeMapper;
 
+    @Autowired
+    private JwtProperties jwtProperties;
+
     /**
      * 员工登录
      *
      * @param employeeLoginDTO
      * @return
      */
-    public Employee login(EmployeeLoginDTO employeeLoginDTO) {
+    public EmployeeLoginVO login(EmployeeLoginDTO employeeLoginDTO) {
         String username = employeeLoginDTO.getUsername();
         String password = employeeLoginDTO.getPassword();
 
@@ -64,8 +74,23 @@ public class EmployeeServiceImpl implements EmployeeService {
             throw new AccountLockedException(MessageConstant.ACCOUNT_LOCKED);
         }
 
-        //3、返回实体对象
-        return employee;
+        //登录成功后，生成jwt令牌
+        Map<String, Object> claims = new HashMap<>();
+        claims.put(JwtClaimsConstant.EMP_ID, employee.getId());
+        String token = JwtUtil.createJWT(
+                jwtProperties.getAdminSecretKey(),
+                jwtProperties.getAdminTtl(),
+                claims);
+
+        EmployeeLoginVO employeeLoginVO = EmployeeLoginVO.builder()
+                .id(employee.getId())
+                .userName(employee.getUsername())
+                .name(employee.getName())
+                .token(token)
+                .build();
+
+        //3、返回前端要求的vo对象
+        return employeeLoginVO;
     }
 
 
@@ -127,8 +152,6 @@ public class EmployeeServiceImpl implements EmployeeService {
         Employee employee = Employee.builder()
                 .status(status)
                 .id(id)
-//                .updateTime(LocalDateTime.now())
-//                .updateUser(BaseContext.getCurrentId())
                 .build();
 
         employeeMapper.update(employee);
@@ -155,9 +178,6 @@ public class EmployeeServiceImpl implements EmployeeService {
         Employee employee = new Employee();
         BeanUtils.copyProperties(employeeDTO, employee);
 
-//        employee.setUpdateTime(LocalDateTime.now());
-//        employee.setUpdateUser(BaseContext.getCurrentId());
-
         employeeMapper.update(employee);
     }
 
@@ -167,7 +187,8 @@ public class EmployeeServiceImpl implements EmployeeService {
      * @param employeeEditPasswordDTO
      */
     @Override
-    public void updatePassword(EmployeeEditPasswordDTO employeeEditPasswordDTO) {
+    public void updatePassword(@RequestBody EmployeeEditPasswordDTO employeeEditPasswordDTO) {
+        employeeEditPasswordDTO.setEmpId(BaseContext.getCurrentId());
         //旧密码加密
         String oldPassword = DigestUtils.md5DigestAsHex(employeeEditPasswordDTO.getOldPassword().getBytes());
         employeeEditPasswordDTO.setOldPassword(oldPassword);
@@ -179,6 +200,9 @@ public class EmployeeServiceImpl implements EmployeeService {
         //新密码加密
         String newPassword = DigestUtils.md5DigestAsHex(employeeEditPasswordDTO.getNewPassword().getBytes());
         employeeEditPasswordDTO.setNewPassword(newPassword);
+
+        employeeEditPasswordDTO.setUpdateTime(LocalDateTime.now());
+        employeeEditPasswordDTO.setUpdateUser(BaseContext.getCurrentId());
 
         employeeMapper.updatePassword(employeeEditPasswordDTO);
     }

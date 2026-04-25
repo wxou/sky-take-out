@@ -22,10 +22,10 @@ public class RedisConfiguration {
         //设置Redis key的序列化器
         redisTemplate.setKeySerializer(new StringRedisSerializer());
         //设置Redis value的序列化器
-        GenericJackson2JsonRedisSerializer jsonRedisSerializer = 
-                new GenericJackson2JsonRedisSerializer(new JacksonObjectMapper());
-        redisTemplate.setValueSerializer(jsonRedisSerializer);
-        redisTemplate.setHashValueSerializer(jsonRedisSerializer);
+//        GenericJackson2JsonRedisSerializer jsonRedisSerializer =
+//                new GenericJackson2JsonRedisSerializer(new JacksonObjectMapper());
+//        redisTemplate.setValueSerializer(jsonRedisSerializer);
+//        redisTemplate.setHashValueSerializer(jsonRedisSerializer);
         return redisTemplate;
     }
 }

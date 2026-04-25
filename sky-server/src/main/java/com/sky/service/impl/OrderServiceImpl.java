@@ -277,7 +277,7 @@ public class OrderServiceImpl implements OrderService {
      */
     @Override
     public OrderVO getOrderDetail(String id) {
-        // 根据订单号查询订单数据
+        // 根据订单id查询订单数据
         Orders orders = orderMapper.getById(id);
         
         if (orders == null) {

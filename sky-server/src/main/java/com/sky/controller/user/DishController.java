@@ -38,24 +38,7 @@ public class DishController {
     @Cacheable(cacheNames = "dishCache", key = "#categoryId")
     public Result<List<DishVO>> list(Long categoryId) {
 
-//        //构造redis中的key,规则: dish_分类id
-//        String key = "dish_" + categoryId;
-//
-//        //查询redis中是否存在菜品数据
-//        List<DishVO> list = (List<DishVO>) redisTemplate.opsForValue().get(key);
-//        if (list != null && list.size() > 0) {
-//            //如果存在,直接返回,无须查询数据库
-//            return Result.success(list);
-//        }
-
-
-        Dish dish = new Dish();
-        dish.setCategoryId(categoryId);
-        dish.setStatus(StatusConstant.ENABLE);//查询起售中的菜品
-
-        //如果不存在,查询数据库,将数据缓存到redis中
-         List<DishVO> list = dishService.listWithFlavor(dish);
-//         redisTemplate.opsForValue().set(key, list);
+        List<DishVO> list = dishService.listWithFlavor(categoryId);
 
         return Result.success(list);
     }
