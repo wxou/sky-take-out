@@ -1,0 +1,56 @@
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+[Dd]esktop.ini
+
+.idea/
+.vscode/
+.history/
+*.iml
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw*
+
+# --- Build outputs ---
+**/target/
+**/dist/
+**/build/
+**/.cache/
+
+# --- Dependencies ---
+**/node_modules/
+**/node-modules/
+
+# --- Local env / secrets ---
+.env
+.env.*
+*.local
+
+# Spring Boot local profiles (may contain secrets)
+**/application-*.yml
+**/application-*.yaml
+!**/application.yml
+!**/application.yaml
+!**/application-*.example.yml
+!**/application-*.example.yaml
+!**/application-*.sample.yml
+!**/application-*.sample.yaml
+
+# Keys / certificates / keystores
+**/*.pem
+**/*.key
+**/*.crt
+**/*.cer
+**/*.p12
+**/*.pfx
+**/*.jks
+**/*.keystore
+
+# Common secret file names
+**/*secret*
+**/*secrets*
+**/*credential*
+**/*credentials*
+

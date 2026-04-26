@@ -1,0 +1,26 @@
+**/target/
+.idea
+*.iml
+*.class
+*Test.java
+**/test/
+
+# Local Spring profiles (may contain secrets)
+**/application-*.yml
+**/application-*.yaml
+!**/application.yml
+!**/application.yaml
+!**/application-*.example.yml
+!**/application-*.example.yaml
+!**/application-*.sample.yml
+!**/application-*.sample.yaml
+
+# Keys / certificates / keystores
+**/*.pem
+**/*.key
+**/*.crt
+**/*.cer
+**/*.p12
+**/*.pfx
+**/*.jks
+**/*.keystore
