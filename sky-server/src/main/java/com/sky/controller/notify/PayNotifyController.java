@@ -1,8 +1,8 @@
 package com.sky.controller.notify;
 
-import com.alibaba.druid.support.json.JSONUtils;
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sky.properties.WeChatProperties;
 import com.sky.service.OrderService;
 import com.wechat.pay.contrib.apache.httpclient.util.AesUtil;
@@ -15,7 +15,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 
 /**
  * 支付回调相关接口
@@ -24,6 +23,7 @@ import java.util.HashMap;
 @RequestMapping("/notify")
 @Slf4j
 public class PayNotifyController {
+    private static final ObjectMapper objectMapper = new ObjectMapper();
     @Autowired
     private OrderService orderService;
     @Autowired
@@ -44,9 +44,9 @@ public class PayNotifyController {
         String plainText = decryptData(body);
         log.info("解密后的文本：{}", plainText);
 
-        JSONObject jsonObject = JSON.parseObject(plainText);
-        String outTradeNo = jsonObject.getString("out_trade_no");//商户平台订单号
-        String transactionId = jsonObject.getString("transaction_id");//微信支付交易号
+        JsonNode jsonNode = objectMapper.readTree(plainText);
+        String outTradeNo = jsonNode.has("out_trade_no") ? jsonNode.get("out_trade_no").asText() : null;
+        String transactionId = jsonNode.has("transaction_id") ? jsonNode.get("transaction_id").asText() : null;
 
         log.info("商户平台订单号：{}", outTradeNo);
         log.info("微信支付交易号：{}", transactionId);
@@ -86,11 +86,11 @@ public class PayNotifyController {
      * @throws Exception
      */
     private String decryptData(String body) throws Exception {
-        JSONObject resultObject = JSON.parseObject(body);
-        JSONObject resource = resultObject.getJSONObject("resource");
-        String ciphertext = resource.getString("ciphertext");
-        String nonce = resource.getString("nonce");
-        String associatedData = resource.getString("associated_data");
+        JsonNode resultObject = objectMapper.readTree(body);
+        JsonNode resource = resultObject.get("resource");
+        String ciphertext = resource.has("ciphertext") ? resource.get("ciphertext").asText() : null;
+        String nonce = resource.has("nonce") ? resource.get("nonce").asText() : null;
+        String associatedData = resource.has("associated_data") ? resource.get("associated_data").asText() : null;
 
         AesUtil aesUtil = new AesUtil(weChatProperties.getApiV3Key().getBytes(StandardCharsets.UTF_8));
         //密文解密
@@ -107,11 +107,11 @@ public class PayNotifyController {
      */
     private void responseToWeixin(HttpServletResponse response) throws Exception{
         response.setStatus(200);
-        HashMap<Object, Object> map = new HashMap<>();
-        map.put("code", "SUCCESS");
-        map.put("message", "SUCCESS");
+        ObjectNode resultMap = objectMapper.createObjectNode();
+        resultMap.put("code", "SUCCESS");
+        resultMap.put("message", "SUCCESS");
         response.setHeader("Content-type", ContentType.APPLICATION_JSON.toString());
-        response.getOutputStream().write(JSONUtils.toJSONString(map).getBytes(StandardCharsets.UTF_8));
+        response.getOutputStream().write(objectMapper.writeValueAsString(resultMap).getBytes(StandardCharsets.UTF_8));
         response.flushBuffer();
     }
 }

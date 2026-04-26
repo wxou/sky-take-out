@@ -7,6 +7,7 @@ import com.sky.entity.Orders;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -41,8 +42,8 @@ public interface OrderMapper {
      * @param checkOutTime
      * @param orderNumber
      */
-    @Select("update sky_take_out.orders set status = #{orderStatus}, pay_status = #{orderPaidStatus}, checkout_time = #{checkOutTime} where number = #{orderNumber}")
-    void updateStatus(Integer orderStatus, Integer orderPaidStatus, LocalDateTime checkOutTime, String orderNumber);
+    @Update("update sky_take_out.orders set status = #{orderStatus}, pay_status = #{orderPaidStatus}, checkout_time = #{checkOutTime} where number = #{orderNumber}")
+    void updateStatus(@Param("orderStatus") Integer orderStatus, @Param("orderPaidStatus") Integer orderPaidStatus, @Param("checkOutTime") LocalDateTime checkOutTime, @Param("orderNumber") String orderNumber);
 
     /**
      * 分页查询订单
@@ -71,6 +72,12 @@ public interface OrderMapper {
     @Select("select * from sky_take_out.orders where status = #{status} and order_time < #{orderTime}")
     List<Orders> getByStatusAndOrderTimeLT(Integer status, LocalDateTime orderTime);
 
+    @Update("update sky_take_out.orders set status = #{status}, cancel_reason = #{cancelReason}, cancel_time = #{cancelTime} where status = #{oldStatus} and order_time < #{orderTime}")
+    void batchUpdateStatusByOrderTimeLT(@Param("status") Integer status, @Param("cancelReason") String cancelReason, @Param("cancelTime") LocalDateTime cancelTime, @Param("oldStatus") Integer oldStatus, @Param("orderTime") LocalDateTime orderTime);
+
+    @Update("update sky_take_out.orders set status = #{status} where status = #{oldStatus} and order_time < #{orderTime}")
+    void batchUpdateByStatusAndOrderTimeLT(@Param("status") Integer status, @Param("oldStatus") Integer oldStatus, @Param("orderTime") LocalDateTime orderTime);
+
     /**
      * 根据动态条件统计营业额数据
      * @param map
@@ -92,4 +99,13 @@ public interface OrderMapper {
      * @return
      */
     List<GoodsSalesDTO> getSalesTop10(LocalDateTime begin, LocalDateTime end);
+
+    @Select("SELECT DATE(order_time) AS date, IFNULL(SUM(amount), 0) AS amount FROM sky_take_out.orders WHERE order_time >= #{begin} AND order_time <= #{end} AND status = #{status} GROUP BY DATE(order_time) ORDER BY DATE(order_time)")
+    List<Map<String, Object>> sumGroupByDate(@Param("begin") LocalDateTime begin, @Param("end") LocalDateTime end, @Param("status") Integer status);
+
+    @Select("SELECT DATE(order_time) AS date, COUNT(id) AS count FROM sky_take_out.orders WHERE order_time >= #{begin} AND order_time <= #{end} GROUP BY DATE(order_time) ORDER BY DATE(order_time)")
+    List<Map<String, Object>> countGroupByDate(@Param("begin") LocalDateTime begin, @Param("end") LocalDateTime end);
+
+    @Select("SELECT DATE(order_time) AS date, COUNT(id) AS count FROM sky_take_out.orders WHERE order_time >= #{begin} AND order_time <= #{end} AND status = #{status} GROUP BY DATE(order_time) ORDER BY DATE(order_time)")
+    List<Map<String, Object>> countByStatusGroupByDate(@Param("begin") LocalDateTime begin, @Param("end") LocalDateTime end, @Param("status") Integer status);
 }

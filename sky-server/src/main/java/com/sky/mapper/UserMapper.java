@@ -4,8 +4,11 @@ import com.sky.annotation.AutoFill;
 import com.sky.entity.User;
 import com.sky.enumeration.OperationType;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 @Mapper
@@ -39,4 +42,10 @@ public interface UserMapper {
      * @return
      */
     Integer countByMap(Map map);
+
+    @Select("SELECT DATE(create_time) AS date, COUNT(id) AS count FROM sky_take_out.user WHERE create_time <= #{end} GROUP BY DATE(create_time) ORDER BY DATE(create_time)")
+    List<Map<String, Object>> countTotalGroupByDate(@Param("end") LocalDateTime end);
+
+    @Select("SELECT DATE(create_time) AS date, COUNT(id) AS count FROM sky_take_out.user WHERE create_time >= #{begin} AND create_time <= #{end} GROUP BY DATE(create_time) ORDER BY DATE(create_time)")
+    List<Map<String, Object>> countNewGroupByDate(@Param("begin") LocalDateTime begin, @Param("end") LocalDateTime end);
 }

@@ -3,11 +3,13 @@ package com.sky.controller.user;
 import com.sky.constant.JwtClaimsConstant;
 import com.sky.dto.UserLoginDTO;
 import com.sky.entity.User;
+import com.sky.mapper.UserMapper;
 import com.sky.properties.JwtProperties;
 import com.sky.result.Result;
 import com.sky.service.UserService;
 import com.sky.utils.JwtUtil;
 import com.sky.vo.UserLoginVO;
+import io.jsonwebtoken.Claims;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
@@ -32,13 +34,42 @@ public class UserController {
     @Autowired
     private JwtProperties jwtProperties;
 
+    @Autowired
+    private UserMapper userMapper;
+
     @PostMapping("/login")
     @ApiOperation("微信登录")
     public Result<UserLoginVO> login(@RequestBody UserLoginDTO userLoginDTO){
         log.info("微信登录：{}", userLoginDTO);
 
-        //微信登录
         UserLoginVO userLoginVO = userService.wxlogin(userLoginDTO);
+
+        return Result.success(userLoginVO);
+    }
+
+    @PostMapping("/loginDev")
+    @ApiOperation("本地开发登录(跳过微信验证)")
+    public Result<UserLoginVO> loginDev(){
+        log.info("本地开发登录，跳过微信验证");
+
+        User user = userMapper.getById(1L);
+        if (user == null) {
+            user = User.builder()
+                    .openid("dev_openid")
+                    .createTime(java.time.LocalDateTime.now())
+                    .build();
+            userMapper.insert(user);
+        }
+
+        Map<String, Object> claims = new HashMap<>();
+        claims.put(JwtClaimsConstant.USER_ID, user.getId());
+        String token = JwtUtil.createJWT(jwtProperties.getUserSecretKey(), jwtProperties.getUserTtl(), claims);
+
+        UserLoginVO userLoginVO = UserLoginVO.builder()
+                .id(user.getId())
+                .openid(user.getOpenid())
+                .token(token)
+                .build();
 
         return Result.success(userLoginVO);
     }

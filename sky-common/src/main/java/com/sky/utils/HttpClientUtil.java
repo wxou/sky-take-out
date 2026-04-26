@@ -1,6 +1,7 @@
 package com.sky.utils;
 
-import com.alibaba.fastjson.JSONObject;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -26,6 +27,7 @@ import java.util.Map;
 public class HttpClientUtil {
 
     static final  int TIMEOUT_MSEC = 5 * 1000;
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * 发送GET方式请求
@@ -144,12 +146,11 @@ public class HttpClientUtil {
             HttpPost httpPost = new HttpPost(url);
 
             if (paramMap != null) {
-                //构造json格式数据
-                JSONObject jsonObject = new JSONObject();
+                ObjectNode jsonNode = objectMapper.createObjectNode();
                 for (Map.Entry<String, String> param : paramMap.entrySet()) {
-                    jsonObject.put(param.getKey(),param.getValue());
+                    jsonNode.put(param.getKey(),param.getValue());
                 }
-                StringEntity entity = new StringEntity(jsonObject.toString(),"utf-8");
+                StringEntity entity = new StringEntity(objectMapper.writeValueAsString(jsonNode),"utf-8");
                 //设置请求编码
                 entity.setContentEncoding("utf-8");
                 //设置数据类型

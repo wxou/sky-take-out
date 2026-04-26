@@ -1,7 +1,9 @@
 package com.sky.service.impl;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
+import cn.hutool.core.lang.Snowflake;
+import cn.hutool.core.util.IdUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.sky.constant.MessageConstant;
@@ -12,7 +14,6 @@ import com.sky.exception.AddressBookBusinessException;
 import com.sky.exception.OrderBusinessException;
 import com.sky.mapper.*;
 import com.sky.result.PageResult;
-import com.sky.result.Result;
 import com.sky.service.OrderService;
 import com.sky.utils.WeChatPayUtil;
 import com.sky.vo.OrderPaymentVO;
@@ -23,20 +24,19 @@ import com.sky.websocket.WebSocketServer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-//import static java.util.stream.Nodes.collect;
-
 @Slf4j
 @Service
 public class OrderServiceImpl implements OrderService {
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final Snowflake snowflake = IdUtil.getSnowflake(1, 1);
 
     @Autowired
     private OrderMapper orderMapper;
@@ -58,6 +58,8 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private WebSocketServer webSocketServer;
+
+    // private Snowflake snowflake = IdUtil.getSnowflake(1, 1);
 
     /**
      * 用户下单
@@ -96,8 +98,7 @@ public class OrderServiceImpl implements OrderService {
         orders.setPayStatus(Orders.UN_PAID);
         orders.setStatus(Orders.PENDING_PAYMENT);
         orders.setUserId(userId);
-        //订单号UUID拼接用户id
-        orders.setNumber(String.valueOf(System.currentTimeMillis()) + userId);
+        orders.setNumber(snowflake.nextIdStr());
         orders.setPhone(addressBook.getPhone());
         orders.setConsignee(addressBook.getConsignee());
         orders.setAddress(addressBook.getDetail());
@@ -105,20 +106,17 @@ public class OrderServiceImpl implements OrderService {
         orderMapper.insert(orders);
 
         List<OrderDetail> orderDetailList = new ArrayList<>();
-        //3.向订单明细表插入n条数据
         for (ShoppingCart cart : shoppingCartList) {
-            OrderDetail orderDetail = new OrderDetail();//订单明细
+            OrderDetail orderDetail = new OrderDetail();
             BeanUtils.copyProperties(cart, orderDetail);
-            orderDetail.setOrderId(orders.getId());//设置当前订单明细关联的订单id
+            orderDetail.setOrderId(orders.getId());
             orderDetailList.add(orderDetail);
         }
 
         orderDetailMapper.insertBatch(orderDetailList);
 
-        //4.清空当前用户的购物车数据
         shoppingCartMapper.deleteByUserId(userId);
 
-        //5.封装OrderSubmitVO并返回
         OrderSubmitVO orderSubmitVO = OrderSubmitVO.builder()
                 .id(orders.getId())
                 .orderNumber(orders.getNumber())
@@ -136,51 +134,39 @@ public class OrderServiceImpl implements OrderService {
      * @return
      */
     public OrderPaymentVO payment(OrdersPaymentDTO ordersPaymentDTO) throws Exception {
-        // 当前登录用户id
-        Long userId = BaseContext.getCurrentId();
-        User user = userMapper.getById(userId);
-
-        //调用微信支付接口，生成预支付交易单
-//        JSONObject jsonObject = weChatPayUtil.pay(
-//                ordersPaymentDTO.getOrderNumber(), //商户订单号
-//                new BigDecimal(0.01), //支付金额，单位 元
-//                "苍穹外卖订单", //商品描述
-//                user.getOpenid() //微信用户的openid
-//        );
-//
-//        if (jsonObject.getString("code") != null && jsonObject.getString("code").equals("ORDERPAID")) {
-//            throw new OrderBusinessException("该订单已支付");
-//        }
-
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("code", "ORDERPAID");
-        OrderPaymentVO vo = jsonObject.toJavaObject(OrderPaymentVO.class);
-        vo.setPackageStr(jsonObject.getString("package"));
-
-        //为替代微信支付成功后的数据订单状态更新,多定义一个方法进行修改
-        Integer OrderPaidStatus = Orders.PAID;//支付状态,已支付
-        Integer OrderStatus = Orders.TO_BE_CONFIRMED; //订单状态,待接单
-
-        //发现没有将支付时间 check_out属性赋值,所以在这里添加
-        LocalDateTime check_out_time = LocalDateTime.now();
-
-        //获取订单号码
         String orderNumber = ordersPaymentDTO.getOrderNumber();
 
-        log.info("调用updateStatus, 用于替换微信支付更新数据库状态的问题");
+        Integer OrderPaidStatus = Orders.PAID;
+        Integer OrderStatus = Orders.TO_BE_CONFIRMED;
+        LocalDateTime check_out_time = LocalDateTime.now();
+
+        log.info("跳过微信支付，直接更新订单状态为已支付");
         orderMapper.updateStatus(OrderStatus, OrderPaidStatus, check_out_time, orderNumber);
 
-        Map map = new HashMap();
-        map.put("type", 1);// 消息类型，1表示来单提醒
-        //获取订单id
-        Orders orders=orderMapper.getByNumber(orderNumber);
-        map.put("orderId", orders.getId());
-        map.put("content", "订单号：" + orderNumber);
+        Orders orders = orderMapper.getByNumber(orderNumber);
 
-        // 通过WebSocket实现来单提醒，向客户端浏览器推送消息
-        webSocketServer.sendToAllClient(JSON.toJSONString(map));
-        log.info("来单提醒：{}", JSON.toJSONString(map));
+        if (orders != null) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("type", 1);
+            map.put("orderId", orders.getId());
+            map.put("content", "订单号：" + orderNumber);
 
+            try {
+                String jsonMsg = objectMapper.writeValueAsString(map);
+                webSocketServer.sendToAllClient(jsonMsg);
+                log.info("来单提醒：{}", jsonMsg);
+            } catch (Exception e) {
+                log.error("来单提醒推送失败", e);
+            }
+        }
+
+        OrderPaymentVO vo = OrderPaymentVO.builder()
+                .nonceStr(String.valueOf(System.currentTimeMillis()))
+                .timeStamp(String.valueOf(System.currentTimeMillis() / 1000))
+                .signType("RSA")
+                .paySign("skip")
+                .packageStr("prepay_id=skip")
+                .build();
 
         return vo;
     }
@@ -206,13 +192,17 @@ public class OrderServiceImpl implements OrderService {
         orderMapper.update(orders);
         log.info("已支付订单状态：{}", orders);
 
-        //通过websocket向客户端浏览器推送信息 type orderId content
-        Map map = new HashMap();
-        map.put("type", 1);//1表示来单提醒 2表示用户催单
+        Map<String, Object> map = new HashMap<>();
+        map.put("type", 1);
         map.put("orderId", ordersDB.getId());
         map.put("content", "订单号: " + outTradeNo);
 
-        String json = JSON.toJSONString(map);
+        String json;
+        try {
+            json = objectMapper.writeValueAsString(map);
+        } catch (JsonProcessingException e) {
+            throw new OrderBusinessException("消息序列化失败");
+        }
         webSocketServer.sendToAllClient(json);
         log.info("来单提醒：{}", json);
 
@@ -554,13 +544,16 @@ public class OrderServiceImpl implements OrderService {
             throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
         }
 
-        Map map = new HashMap();
-        map.put("type", 2);//1表示来单提醒，2表示催单提醒
+        Map<String, Object> map = new HashMap<>();
+        map.put("type", 2);
         map.put("orderId", id);
         map.put("content", "订单号：" + ordersDB.getNumber());
 
-        //通过websocket向客户端浏览器推送消息
-        webSocketServer.sendToAllClient(JSON.toJSONString( map));
+        try {
+            webSocketServer.sendToAllClient(objectMapper.writeValueAsString(map));
+        } catch (JsonProcessingException e) {
+            log.error("催单消息序列化失败", e);
+        }
     }
 
 }
